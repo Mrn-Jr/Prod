@@ -2,68 +2,92 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 // --- DADOS SIMULADOS DO CULTO (MOCK DATA PARA O CULTO DE AMANHÃ) ---
-const eventTitle = ref('Culto de Celebração')
+const eventTitle = ref('Passos de Fé')
 const eventLocation = ref('Templo Principal')
 const serviceDate = ref('Amanhã')
 
 const blocks = ref([
   {
     id: 1,
-    title: 'Oração Inicial e Boas-Vindas',
-    responsible: 'Pr. Lucas',
-    durationMinutes: 5,
+    title: 'Louvor',
+    responsible: 'Banda',
+    durationMinutes: 15,
     isFlexible: false,
     status: 'completed', // 'completed', 'active', 'pending'
-    plannedStart: '19:00',
-    plannedEnd: '19:05',
-    actualStart: '19:00',
-    actualEnd: '19:04'
+    plannedStart: '20:00',
+    plannedEnd: '20:15',
+    actualStart: '20:00',
+    actualEnd: null
   },
   {
     id: 2,
-    title: 'Louvor e Adoração',
-    responsible: 'Ministério de Louvor',
-    durationMinutes: 25,
+    title: 'Oração',
+    responsible: 'Pastor',
+    durationMinutes: 10,
     isFlexible: true,
     status: 'active',
-    plannedStart: '19:05',
-    plannedEnd: '19:30',
-    actualStart: '19:04',
+    plannedStart: '20:15',
+    plannedEnd: '20:25',
+    actualStart: '20:15',
     actualEnd: null
   },
   {
     id: 3,
-    title: 'Avisos e Dízimos/Ofertas',
-    responsible: 'Diaconia / Comunicação',
-    durationMinutes: 10,
+    title: 'Ofertório',
+    responsible: 'Pastor',
+    durationMinutes: 5,
     isFlexible: true,
     status: 'pending',
-    plannedStart: '19:30',
-    plannedEnd: '19:40',
+    plannedStart: '20:25',
+    plannedEnd: '21:30',
     actualStart: null,
     actualEnd: null
   },
   {
     id: 4,
-    title: 'Ministração da Palavra (Pregação)',
-    responsible: 'Pr. Marcos',
-    durationMinutes: 40,
+    title: 'Música Ofertório',
+    responsible: 'Banda',
+    durationMinutes: 5,
     isFlexible: false,
     status: 'pending',
-    plannedStart: '19:40',
-    plannedEnd: '20:20',
+    plannedStart: '20:30',
+    plannedEnd: '20:35',
     actualStart: null,
     actualEnd: null
   },
   {
     id: 5,
-    title: 'Apelo e Oração Final',
-    responsible: 'Equipe de Apelo',
+    title: 'Palavra',
+    responsible: 'Pastor', 
+    durationMinutes: 35,
+    isFlexible: false,
+    status: 'pending',
+    plannedStart: '21:15',
+    plannedEnd: '21:25',
+    actualStart: null,
+    actualEnd: null
+  },  
+  {
+    id: 5,
+    title: 'Ministração',
+    responsible: 'Pastor',
     durationMinutes: 10,
     isFlexible: true,
     status: 'pending',
-    plannedStart: '20:20',
-    plannedEnd: '20:30',
+    plannedStart: '21:15',
+    plannedEnd: '21:25',
+    actualStart: null,
+    actualEnd: null
+  },
+  {
+    id: 5,
+    title: 'Oração Final',
+    responsible: 'Pastor',
+    durationMinutes: 5,
+    isFlexible: true,
+    status: 'pending',
+    plannedStart: '21:25',
+    plannedEnd: '21:30',
     actualStart: null,
     actualEnd: null
   }
@@ -80,12 +104,31 @@ const activeBlock = computed(() => blocks.value[currentBlockIndex.value] || null
 const activePlannedSeconds = computed(() => {
   return activeBlock.value ? activeBlock.value.durationMinutes * 60 : 0
 })
-
 const remainingSeconds = computed(() => {
   return activePlannedSeconds.value - elapsedTimeSeconds.value
 })
 
 const isOvertime = computed(() => remainingSeconds.value < 0)
+
+// --- ATRASO ACUMULADO EM TEMPO REAL ---
+// Soma em segundos o atraso de todos os blocos concluídos + o atraso do bloco atual
+const totalAccumulatedDelaySeconds = computed(() => {
+  const completedDelay = blocks.value
+    .filter(b => b.status === 'completed')
+    .reduce((sum, b) => sum + (b.delaySeconds || 0), 0)
+
+  const activeDelay = isOvertime.value ? Math.abs(remainingSeconds.value) : 0
+
+  return completedDelay + activeDelay
+})
+
+// Formata o atraso acumulado no formato +MM:SS (ex: +03:15)
+const formattedTotalDelay = computed(() => {
+  const totalSecs = totalAccumulatedDelaySeconds.value
+  const m = Math.floor(totalSecs / 60).toString().padStart(2, '0')
+  const s = (totalSecs % 60).toString().padStart(2, '0')
+  return `+${m}:${s}`
+})
 
 const statusColor = computed(() => {
   if (!activeBlock.value) return 'neutral'
@@ -123,6 +166,10 @@ const nextBlock = () => {
       activeBlock.value.status = 'completed'
       const now = new Date()
       activeBlock.value.actualEnd = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+      
+      // Salva o atraso acumulado deste bloco se estourou a duração prevista
+      const plannedSecs = activeBlock.value.durationMinutes * 60
+      activeBlock.value.delaySeconds = Math.max(0, elapsedTimeSeconds.value - plannedSecs)
     }
     currentBlockIndex.value++
     activeBlock.value.status = 'active'
@@ -133,6 +180,8 @@ const nextBlock = () => {
   } else {
     if (activeBlock.value) {
       activeBlock.value.status = 'completed'
+      const plannedSecs = activeBlock.value.durationMinutes * 60
+      activeBlock.value.delaySeconds = Math.max(0, elapsedTimeSeconds.value - plannedSecs)
     }
     isRunning.value = false
   }
@@ -142,9 +191,11 @@ const previousBlock = () => {
   if (currentBlockIndex.value > 0) {
     if (activeBlock.value) {
       activeBlock.value.status = 'pending'
+      activeBlock.value.delaySeconds = 0
     }
     currentBlockIndex.value--
     activeBlock.value.status = 'active'
+    activeBlock.value.delaySeconds = 0
     elapsedTimeSeconds.value = 0
   }
 }
@@ -186,7 +237,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans">
+  <div class="min-h-screen bg-zinc-950 text-slate-100 p-4 md:p-8 font-sans">
     <!-- CABEÇALHO DO MONITOR AO VIVO -->
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800 pb-4 mb-6 gap-4">
       <div>
@@ -200,11 +251,17 @@ onUnmounted(() => {
 
       <!-- STATUS RESUMIDO E COMPENSAÇÃO -->
       <div class="flex items-center gap-3">
-        <div v-if="isOvertime" class="flex items-center gap-2 bg-red-950/60 border border-red-800 text-red-300 px-3 py-1.5 rounded-lg text-xs font-medium">
+        <div class="flex items-center gap-2 bg-zinc-900/90 border border-slate-800 text-slate-300 px-4 py-2.5 rounded-lg text-sm font-medium">
+          Atraso Acumulado: 
+          <span :class="totalAccumulatedDelaySeconds > 0 ? 'text-red-400 font-bold font-mono' : 'text-emerald-400 font-bold font-mono'">
+            {{ formattedTotalDelay }}
+          </span>
+        </div>
+        <div v-if="isOvertime" class="flex items-center gap-2 bg-red-950/60 border border-red-800 text-red-300 px-4 py-2.5 rounded-lg text-xs font-medium">
            Atraso no Bloco: +{{ Math.ceil(Math.abs(remainingSeconds) / 60) }} min
         </div>
-        <div v-else class="flex items-center gap-2 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-medium">
-           Culto dentro do tempo
+        <div v-else class="flex items-center gap-2 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-4 py-3.5 rounded-lg text-xs font-medium">
+           Bloco dentro do tempo
         </div>
       </div>
     </header>
@@ -266,17 +323,18 @@ onUnmounted(() => {
             </button>
 
             <button 
-              @click="nextBlock"
-              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              <span> Próximo Bloco</span>
-            </button>
-            <button 
               @click="previousBlock"
-              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-[#848484] hover:bg-zinc-900/90 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
             >
               <span> Bloco Anterior</span>
             </button>
+
+            <button 
+              @click="nextBlock"
+              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-[#848484] hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <span> Próximo Bloco</span>
+            </button>          
           </div>
 
           <!-- AJUSTES RÁPIDOS DE TEMPO -->
@@ -291,7 +349,7 @@ onUnmounted(() => {
         <!-- PAINEL DE GESTÃO DE IMPREVISTOS / RECÁLCULO DINÂMICO -->
         <div v-if="isOvertime" class="bg-slate-900 border border-red-900/50 rounded-xl p-5 shadow-lg">
           <h3 class="text-sm font-bold text-red-400 flex items-center gap-2 mb-2">
-            ⚡ Motor de Recálculo Dinâmico (Atraso Detectado)
+            Recálculo Dinâmico
           </h3>
           <p class="text-xs text-slate-300 mb-4">
             O bloco atual ultrapassou a duração limite. Como você deseja reajustar a programação do culto?
@@ -301,13 +359,7 @@ onUnmounted(() => {
               @click="pushSchedule"
               class="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold text-slate-200 transition-colors flex items-center justify-center gap-2"
             >
-              ➡️ Empurrar Toda a Agenda (+{{ Math.ceil(Math.abs(remainingSeconds) / 60) }} min)
-            </button>
-            <button 
-              @click="compensateNextBlocks"
-              class="flex-1 py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 rounded-lg text-xs font-semibold text-amber-300 transition-colors flex items-center justify-center gap-2"
-            >
-              ✂️ Compensar nos Próximos Blocos Flexíveis
+              Empurrar Toda a Agenda (+{{ Math.ceil(Math.abs(remainingSeconds) / 60) }} min)
             </button>
           </div>
         </div>
@@ -315,7 +367,7 @@ onUnmounted(() => {
       </main>
 
       <!-- LADO DIREITO: LINHA DO TEMPO DA LITURGIA (5 COLS) -->
-      <aside class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col shadow-xl">
+      <aside class="lg:col-span-5 bg-zinc-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col shadow-xl">
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
           <h3 class="text-sm font-bold text-white flex items-center gap-2">
             Ordem do Culto
@@ -330,9 +382,9 @@ onUnmounted(() => {
             :key="block.id"
             class="relative border rounded-xl p-3.5 transition-all duration-200"
             :class="{
-              'bg-indigo-950/40 border-indigo-500/60 ring-1 ring-indigo-500/30': block.status === 'active',
-              'bg-slate-950/40 border-slate-800/80 opacity-60': block.status === 'completed',
-              'bg-slate-950/80 border-slate-800': block.status === 'pending'
+              'bg-emerald-950/30 border-emerald-500/40 ring-1 ring-indigo-500/30': block.status === 'active',
+              'bg-zinc-950 border-emerald-500/40 opacity-60': block.status === 'completed',
+              'bg-zinc-950 border-emerald-500/40': block.status === 'pending'
             }"
           >
             <!-- CABEÇALHO DO ITEM -->
@@ -341,7 +393,7 @@ onUnmounted(() => {
                 <span 
                   class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
                   :class="{
-                    'bg-indigo-500 text-white': block.status === 'active',
+                    'bg-emerald-950/30 text-white': block.status === 'active',
                     'bg-slate-700 text-slate-300': block.status === 'completed',
                     'bg-slate-800 text-slate-400': block.status === 'pending'
                   }"
