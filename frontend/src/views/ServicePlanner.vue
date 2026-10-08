@@ -296,7 +296,7 @@ const saveSchedule = () => {
                 <input 
                   v-model="serviceDate"
                   type="date" 
-                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
 
@@ -305,7 +305,7 @@ const saveSchedule = () => {
                 <input 
                   v-model="startTime"
                   type="time" 
-                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors font-mono"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-1 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors font-mono"
                 />
               </div>
             </div>
@@ -313,7 +313,7 @@ const saveSchedule = () => {
         </div>
 
         <!-- CARD DE RESUMO TEMPORAL (MÉTRICAS AUTOMÁTICAS) -->
-        <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-5 shadow-xl">
+        <div class="bg-zinc-900/90 border border-indigo-500/30 rounded-2xl p-5 shadow-xl">
           <h2 class="text-sm font-bold text-indigo-300 flex items-center gap-2 mb-4 border-b border-indigo-500/20 pb-3">
             <span>Resumo da Cronologia</span>
           </h2>
@@ -346,7 +346,7 @@ const saveSchedule = () => {
         </div>
 
         <!-- ADICIONAR NOVO BLOCO RÁPIDO -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="bg-zinc-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
           <h2 class="text-sm font-bold text-white flex items-center gap-2 mb-3">
             <span>Adicionar Etapa / Bloco</span>
           </h2>
@@ -405,7 +405,7 @@ const saveSchedule = () => {
       </aside>
 
       <!-- COLUNA DA DIREITA: SEQUÊNCIA DOS BLOCOS DA LITURGIA (8 COLS) -->
-      <main class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col shadow-xl">
+      <main class="lg:col-span-8 bg-zinc-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col shadow-xl">
         
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
           <div>

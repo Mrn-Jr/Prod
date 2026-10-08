@@ -331,7 +331,7 @@ onUnmounted(() => {
 
             <button 
               @click="nextBlock"
-              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-[#848484] hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+              class="flex-1 min-w-[140px] py-3.5 px-5 rounded-xl bg-[#848484] hover:bg-zinc-900/90 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
             >
               <span> Próximo Bloco</span>
             </button>          
