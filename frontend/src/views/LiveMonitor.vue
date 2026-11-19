@@ -224,6 +224,25 @@ const compensateNextBlocks = () => {
 }
 
 onMounted(() => {
+  // Carrega a programação criada no Planejador (se existir)
+  const savedData = localStorage.getItem('church_service_schedule')
+  if (savedData) {
+    try {
+      const parsed = JSON.parse(savedData)
+      if (parsed.eventTitle) eventTitle.value = parsed.eventTitle
+      if (parsed.eventLocation) eventLocation.value = parsed.eventLocation
+      if (parsed.serviceDate) serviceDate.value = parsed.serviceDate
+      if (parsed.blocks && parsed.blocks.length > 0) {
+        blocks.value = parsed.blocks
+        currentBlockIndex.value = 0
+        elapsedTimeSeconds.value = 0
+        isRunning.value = false
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar dados do culto:', e)
+    }
+  }
+
   timerInterval = setInterval(() => {
     if (isRunning.value) {
       elapsedTimeSeconds.value++

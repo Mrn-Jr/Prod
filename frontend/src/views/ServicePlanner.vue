@@ -1,5 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // --- ESTADO DO CULTO / EVENTO ---
 const eventTitle = ref('Culto de Celebração')
@@ -194,7 +197,20 @@ const saveSchedule = () => {
     startTime: startTime.value,
     totalDurationMinutes: totalDurationMinutes.value,
     calculatedEndTime: calculatedEndTime.value,
-    blocks: computedBlocks.value,
+    // Prepara a lista de blocos formatada para o monitor
+    blocks: computedBlocks.value.map((b, idx) => ({
+      id: b.id,
+      title: b.title,
+      responsible: b.responsible || 'Equipe Geral',
+      durationMinutes: Number(b.durationMinutes),
+      isFlexible: Boolean(b.isFlexible),
+      status: idx === 0 ? 'active' : 'pending',
+      plannedStart: b.plannedStart,
+      plannedEnd: b.plannedEnd,
+      actualStart: null,
+      actualEnd: null,
+      delaySeconds: 0
+    })),
     updatedAt: new Date().toISOString()
   }
 
@@ -204,10 +220,8 @@ const saveSchedule = () => {
     console.warn('Não foi possível salvar no localStorage:', e)
   }
 
-  saveNotification.value = true
-  setTimeout(() => {
-    saveNotification.value = false
-  }, 3000)
+  // Redireciona direto para a tela do monitor
+  router.push('/monitor')
 }
 </script>
 
@@ -246,7 +260,7 @@ const saveSchedule = () => {
           @click="applyTemplate('ensino')"
           class="px-3.5 py-2 rounded-xl bg-zinc-900/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-semibold text-slate-300 transition-all flex items-center gap-1.5"
         >
-          Template Ensino
+          Template Passos de fé
         </button>
         <button 
           @click="saveSchedule"
@@ -275,7 +289,7 @@ const saveSchedule = () => {
               <input 
                 v-model="eventTitle"
                 type="text" 
-                placeholder="Ex: Culto de Celebração"
+                placeholder="Ex: Culto de Domingo"
                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
